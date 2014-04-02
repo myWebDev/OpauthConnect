@@ -164,7 +164,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
             $this->settings->set(OCSettings::VK_SECRET,          $form->getValue("vkontakte_secret"));
             $this->settings->save();
             
-            $sender->message(T("message.changesSaved"), "success");
+            $sender->message(T("message.changesSaved"), "success autoDismiss");
             $sender->redirect(URL("admin/plugins"));
         }
         
@@ -286,7 +286,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
     
     private function social_confirm($sender, $hash) {
         if($result = ET::getInstance("ocMemberSocialModel")->validateConfirmationHash($hash)) {
-            $sender->message(T("You successfully confirmed your new account"), "success");
+            $sender->message(T("You successfully confirmed your new account"), "success autoDismiss");
             $this->login($result);
         }
         $sender->message(T("Invalid confirmation hash"), "warning");
@@ -320,7 +320,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
             sendEmail($data["email"], $title, $sender->getViewContents('emails/oc_confirmation', $params));
             
             ET::getInstance("ocMemberSocialModel")->sentConfirmation($row_id);
-            $sender->message("Confirmation letter was sent to your e-mail address (".$data["email"].")", "success");
+            $sender->message("Confirmation letter was sent to your e-mail address (".$data["email"].")", "success autoDismiss");
         }
         else {
             $sender->message(T("Confirmation letter can be sent once per 5 minutes. Please wait"), "warning");

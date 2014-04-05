@@ -23,12 +23,8 @@ final class OpauthConnect {
     
     const PASSWORD_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
     
-    const CONFIG_SALT = 'security_salt';
-    const CONFIG_PATH = 'path';
-    const CONFIG_CALLBACK = 'callback_url';
-    const CONFIG_STRATEGY = 'Strategy';
-    
     private $_config = array();
+    private $lastAccValidation = null;
     
     public function __construct($config) {
         $this->_config = $config;
@@ -40,20 +36,56 @@ final class OpauthConnect {
     
     public function getResponse() {
         $response = $this->validateResponse();
-        return array(
-            "static" => array(
-                "email"    => isset($response['auth']['info']['email']) ? $response['auth']['info']['email'] : null,
-                "provider" => strtolower($response['auth']['provider']),
-                "uid"      => strtolower($response['auth']['uid']),
-                "link"     => $this->getProfileLink($response),
-                "name"     => $this->getFullName($response)
-            ),
-            "editable" => array(
-                "email"    => isset($response['auth']['info']['email']) ? $response['auth']['info']['email'] : null,
-                "avatar"   => isset($response['auth']['info']['image']) ? $response['auth']['info']['image'] : null,
-                "username" => $this->getFullName($response)
-            )            
+        
+        $output['static'] = array(
+            "email"    => isset($response['auth']['info']['email']) ? $response['auth']['info']['email'] : null,
+            "provider" => strtolower($response['auth']['provider']),
+            "uid"      => strtolower($response['auth']['uid']),
+            "link"     => $this->getProfileLink($response),
+            "name"     => $this->getFullName($response)
         );
+        $output['editable'] = array(
+            'email' => $output['static']['email'],
+            'avatar'   => isset($response['auth']['info']['image']) ? $response['auth']['info']['image'] : null,
+            'username' => $this->generateUsername($output['static']['name'], $output['static']['email'])
+        );
+                
+        return $output;
+    }
+    
+    private function generateUsername($full_name, $email) {
+        $full_name = str_replace(" ", "_", $full_name);
+        if(ET::memberModel()->validateUsername($full_name) === null) {
+            $username = $full_name;
+        }
+        else {
+            $email = empty($email) ? $full_name : preg_replace("/[[:punct:]]/", "_", current(explode("@", $email)));
+            $username = $email;
+            while(ET::memberModel()->validateUsername($username) !== null) {
+                $username = $email . "_" . rand(0, 999);
+            }
+        }
+        
+        return $username;
+    }
+    
+    public function validateAccount($socialId, $service) {
+        $account = ET::getInstance("ocMemberSocialModel")->getAccount($socialId, $service);
+        if(!$account) {
+            return OpauthConnect::ACCOUNT_NOT_EXISTS;
+        }
+        elseif(!$account["confirmed"]) {
+            $this->lastAccValidation = $account["id"];
+            return OpauthConnect::ACCOUNT_NOT_CONFIRMED;
+        }
+        else {
+            $this->lastAccValidation = $account["memberId"];
+            return OpauthConnect::ACCOUNT_CONFIRMED;
+        }
+    }
+    
+    public function getLastAccountValidation() {
+        return $this->lastAccValidation;
     }
     
     private function validateResponse() {

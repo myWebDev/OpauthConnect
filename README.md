@@ -12,6 +12,15 @@ Supported services
 3. Twitter
 4. Vkontakte
 
+Move your existing settings (according to v2.0.2 updates)
+---------------------------------------------------------
+
+*For those, who have used previous versions of plugin. This feature is only available in v2.0.2 and will be removed later.*
+
+1. Log in as administrator
+2. Run `http://your-forum.com/user/social/exportsettings`  
+    2.1. For v1.0+ use `http://your-forum.com/user/social/exportsettings/v1`
+
 Steps to install
 ----------------
 

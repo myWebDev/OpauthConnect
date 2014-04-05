@@ -16,28 +16,16 @@ class OcMemberSocialModel extends ETModel {
     
     public function __construct() {}
     
-    public function validateAccount($socialId, $network, &$resultId) {
-        $result = ET::SQL()->select("memberId, id, confirmed")
-                           ->from($this->table)
-                           ->from("member", "member_Id = memberId")
-                           ->where(array(
-                               "socialId" => $socialId,
-                               "socialNetwork" => $network
-                           ))
-                           ->exec()
-                           ->firstRow();
-
-        if(!$result) {
-            return OpauthConnect::ACCOUNT_NOT_EXISTS;
-        }
-        elseif(!$result["confirmed"]) {
-            $resultId = $result["id"];
-            return OpauthConnect::ACCOUNT_NOT_CONFIRMED;
-        }
-        else {
-            $resultId = $result["memberId"];
-            return OpauthConnect::ACCOUNT_CONFIRMED;
-        }
+    public function getAccount($socialId, $service) {
+        return ET::SQL()->select("memberId, id, confirmed")
+                        ->from($this->table)
+                        ->from("member", "member_Id = memberId")
+                        ->where(array(
+                            "socialId" => $socialId,
+                            "socialNetwork" => $service
+                        ))
+                        ->exec()
+                        ->firstRow();
     }
     
     public function getConfirmationData($id) {

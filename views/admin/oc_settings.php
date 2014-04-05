@@ -33,7 +33,7 @@
                     <div>
                         <ul class='form'>
                             <li>
-                                <?php print $data["form"]->input("security_salt", "text"); ?>
+                                <?php print $data["form"]->input(OCSettings::SECURITY_SALT, "text"); ?>
                                 <div class="help"><?php print T('Strongly recommend to set your own value!'); ?></div>
                             </li>
                         </ul>
@@ -41,7 +41,7 @@
                 </div>
                 <div class="row clearfix">
                     <div class="status">
-                        <?php print $data["form"]->checkbox("allow_unlink", array("class" => "static")); ?>
+                        <?php print $data["form"]->checkbox(OCSettings::ALLOW_UNLINK, array("class" => "static")); ?>
                         <label><?php print T('Unlink accounts'); ?></label>
                     </div>
                     <div>
@@ -57,85 +57,35 @@
                 Social networks settings <span>+</span><span style="display: none;">-</span>
             </div>
             <div class="category-settings">
-                <div class="row clearfix">
-                    <div class="status">
-                        <?php print $data["form"]->checkbox("strategy[tw]"); ?>
-                        <label>Twitter</label>
+                <?php foreach($data['form_services'] as $service): ?>
+                    <div class="row clearfix">
+                        <div class="status">
+                            <?php
+                                $data["form"]->setValue($service['enabled']['key'], $service['enabled']['value']);
+                                print $data["form"]->checkbox($service['enabled']['key']);
+                            ?>
+                            <label><?php print $service['name']; ?></label>
+                        </div>
+                        <div>
+                            <ul class='form'>
+                                <li>
+                                    <label><?php print $service['name']." ".$service['raw_key']; ?></label>
+                                    <?php
+                                        $data["form"]->setValue($service['key']['key'], $service['key']['value']);
+                                        print $data["form"]->input($service['key']['key'], "text");
+                                    ?>
+                                </li>
+                                <li>
+                                    <label><?php print $service['name']." ".$service['raw_secret']; ?></label>
+                                    <?php
+                                        $data["form"]->setValue($service['secret']['key'], $service['secret']['value']);
+                                        print $data["form"]->input($service['secret']['key'], "text");
+                                    ?>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
-                    <div>
-                        <ul class='form'>
-                            <li>
-                                <label>Twitter Key</label>
-                                <?php print $data["form"]->input("twitter_key", "text"); ?>
-                            </li>
-
-                            <li>
-                                <label>Twitter Secret</label>
-                                <?php print $data["form"]->input("twitter_secret", "text"); ?>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="row clearfix">
-                    <div class="status">
-                        <?php print $data["form"]->checkbox("strategy[fb]"); ?>
-                        <label>Facebook</label>
-                    </div>
-                    <div>
-                        <ul class='form'>
-                            <li>
-                                <label>Facebook App ID</label>
-                                <?php print $data["form"]->input("facebook_key", "text"); ?>
-                            </li>
-
-                            <li>
-                                <label>Facebook App Secret</label>
-                                <?php print $data["form"]->input("facebook_secret", "text"); ?>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="row clearfix">
-                    <div class="status">
-                        <?php print $data["form"]->checkbox("strategy[gg]"); ?>
-                        <label>Google</label>
-                    </div>
-                    <div>
-                        <ul class='form'>
-                            <li>
-                                <label>Google Client ID</label>
-                                <?php print $data["form"]->input("google_key", "text"); ?>
-                            </li>
-
-                            <li>
-                                <label>Google Client Secret</label>
-                                <?php print $data["form"]->input("google_secret", "text"); ?>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="row clearfix">
-                    <div class="status">
-                        <?php print $data["form"]->checkbox("strategy[vk]"); ?>
-                        <label>VKontakte</label>
-                    </div>
-                    <div>
-                        <ul class='form'>
-                            <li>
-                                <label>VKontakte Key</label>
-                                <?php print $data["form"]->input("vkontakte_key", "text"); ?>
-                            </li>
-
-                            <li>
-                                <label>VKontakte Secret</label>
-                                <?php print $data["form"]->input("vkontakte_secret", "text"); ?>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+                <?php endforeach; ?>
             </div>
         </div>
 
@@ -151,7 +101,7 @@
                     <div>
                         <ul class='form'>
                             <li>
-                                <?php print $data["form"]->input("confirmation_title", "textarea", array("rows" => 3)); ?>
+                                <?php print $data["form"]->input(OCSettings::CONFIRM_EMAIL_SUBJ, "textarea", array("rows" => 3)); ?>
                                 <div class="help">
                                     <?php print T('Available wildcards:'); ?><br/>
                                     [forumName] - <?php print T("Forum title"); ?><br/>
@@ -170,7 +120,7 @@
                     <div>
                         <ul class='form'>
                             <li>
-                                <?php print $data["form"]->input("password_email_title", "textarea", array("rows" => 3)); ?>
+                                <?php print $data["form"]->input(OCSettings::PASS_EMAIL_SUBJ, "textarea", array("rows" => 3)); ?>
                                 <div class="help">
                                     <?php print T('Available wildcards:'); ?><br/>
                                     [forumName] - <?php print T("Forum title"); ?><br/>

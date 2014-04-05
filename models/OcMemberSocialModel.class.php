@@ -1,4 +1,4 @@
-    <?php if(!defined("IN_ESOTALK")) exit;
+<?php if(!defined("IN_ESOTALK")) exit;
 /**
  * OpauthConnect
  *

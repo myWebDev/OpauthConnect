@@ -1,18 +1,18 @@
 <?php if(!defined("IN_ESOTALK")) exit;
 /**
  * OpauthConnect
- * 
+ *
  * @copyright Copyright © 2012 Oleksandr Golubtsov
  * @license   GPLv2 License
  * @package   OpauthСonnect
- * 
+ *
  * This file is part of OpauthСonnect plugin. Please see the included license file for usage information
  */
 
 ET::$pluginInfo["OpauthConnect"] = array(
     "name" => "OpauthConnect",
     "description" => "Sign in via social networks",
-    "version" => "2.0.2",
+    "version" => "2.0.3",
     "author" => "Oleksandr Golubtsov",
     "authorEmail" => "alex.8fmi@gmail.com",
     "authorURL" => "http://mikrobill.com",
@@ -27,28 +27,28 @@ class ETPlugin_OpauthConnect extends ETPlugin {
     private $settings;
     private $services;
     private $opauth_connect;
-    
+
     public function __construct($rootDirectory) {
         parent::__construct($rootDirectory);
         ETFactory::register("ocMemberSocialModel", "OcMemberSocialModel", dirname(__FILE__)."/models/OcMemberSocialModel.class.php");
         ETFactory::register("ocSettingsModel", "OcSettingsModel", dirname(__FILE__)."/models/OcSettingsModel.class.php");
-        
+
         $this->services = new OCServices;
         $this->settings = new OCSettings;
     }
-        
+
     public function handler_init($sender) {
         if(ET::$session->get("remember") === null) ET::$session->store("remember", 1);
 //            unset($sender->menus['user']->items['join']); //removes "sign in" button from header
         $sender->addCSSFile($this->getResource("css/opauthconnect.css"));
         $sender->addJSFile($this->getResource("js/opauthconnect.js"));
-        
+
         $config = array();
         $config['security_salt'] = $this->settings->get(OCSettings::SECURITY_SALT);
         $config['path'] = URL('user/social/');
         $config['callback_url'] = URL('user/social/callback/');
-        
-        
+
+
         foreach($this->services as $service) {
             if($this->settings->get($service->settings->enabled)) {
                 $config['Strategy'][$service->name] = array(
@@ -60,16 +60,16 @@ class ETPlugin_OpauthConnect extends ETPlugin {
                 }
             }
         }
-        
+
         $this->opauth_connect = new OpauthConnect($config);
     }
-    
+
     public function handler_renderOpauth($sender) {
         $data = array(
             'remember' => ET::$session->get("remember", 0),
             'services' => array()
         );
-        
+
         foreach($this->services as $service) {
             if($this->settings->get($service->settings->enabled)) {
                 $data['services'][$service->name] = array(
@@ -81,13 +81,13 @@ class ETPlugin_OpauthConnect extends ETPlugin {
 
         print $sender->getViewContents('social/oc_buttons', $data);
     }
-    
+
     public function handler_settingsController_renderBefore($sender) {
         if(isset($sender->data['panes']) && !empty($sender->data['panes'])) {
             $sender->data['panes']->add('social_accounts', "<a href='".URL("settings/social/accounts")."'>".T("Social accounts")."</a>");
         }
     }
-    
+
     private function login($memberId) {
         if($memberId) {
             ET::$session->loginWithMemberId($memberId);
@@ -95,11 +95,11 @@ class ETPlugin_OpauthConnect extends ETPlugin {
         }
         redirect(URL());
     }
-    
+
     public function settings($sender) {
         $sender->addCSSFile($this->getResource("css/backend.css"));
         $sender->addJSFile($this->getResource("js/backend.js"));
-        
+
         $form = ETFactory::make("form");
         $form->action = URL("admin/plugins");
 
@@ -108,15 +108,15 @@ class ETPlugin_OpauthConnect extends ETPlugin {
             $this->settings->set(OCSettings::CONFIRM_EMAIL_SUBJ, $form->getValue(OCSettings::CONFIRM_EMAIL_SUBJ));
             $this->settings->set(OCSettings::ALLOW_UNLINK,       $form->getValue(OCSettings::ALLOW_UNLINK));
             $this->settings->set(OCSettings::SECURITY_SALT,      $form->getValue(OCSettings::SECURITY_SALT));
-            
+
             foreach($this->services as $service) {
                 foreach($service->settings as $setting) {
                     $this->settings->set($setting, $form->getValue($setting));
                 }
             }
-            
+
             $this->settings->save();
-            
+
             $sender->message(T("message.changesSaved"), "success");
             $sender->redirect(URL("admin/plugins"));
         }
@@ -125,7 +125,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
         $form->setValue(OCSettings::ALLOW_UNLINK, $this->settings->get(OCSettings::ALLOW_UNLINK));
         $form->setValue(OCSettings::CONFIRM_EMAIL_SUBJ, $this->settings->get(OCSettings::CONFIRM_EMAIL_SUBJ));
         $form->setValue(OCSettings::PASS_EMAIL_SUBJ, $this->settings->get(OCSettings::PASS_EMAIL_SUBJ));
-        
+
         $form_services = array();
         foreach($this->services as $service) {
             $form_services[$service->machine_name]['name'] = $service->name;
@@ -143,7 +143,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
         $sender->data("form_services", $form_services);
         return $this->getView('admin/oc_settings');
     }
-    
+
     public function settingsController_social($sender, $action, $param1 = null) {
         $sender->addCSSFile($this->getResource("css/backend.css"));
         $sender->addJSFile($this->getResource("js/backend.js"));
@@ -151,17 +151,17 @@ class ETPlugin_OpauthConnect extends ETPlugin {
             case "accounts":
                 $this->settings_social_accounts($sender);
                 break;
-            
+
             case "unlink":
                 $this->settings_social_unlink_account($sender, $param1);
                 break;
-            
+
             default:
                 $sender->render404();
                 break;
         }
     }
-    
+
     private function settings_social_accounts($sender) {
         $sender->dispatch("profile", array("social_accounts"));
         $accounts = ET::getInstance("ocMemberSocialModel")->getAccounts(ET::$session->userId);
@@ -173,7 +173,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
         $sender->data("accounts_exists", empty($accounts) ? false : true);
         $sender->renderProfile($this->getView("admin/oc_social_accounts"));
     }
-    
+
     private function settings_social_unlink_account($sender, $id) {
         if(!$this->settings->get(OCSettings::ALLOW_UNLINK) || !ET::getInstance("ocMemberSocialModel")->isApropriateUser(ET::$session->userId, $id)) {
             $sender->render404();
@@ -182,7 +182,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
         ET::getInstance("ocMemberSocialModel")->deleteById($id);
         redirect(URL("settings/social/accounts"));
     }
-    
+
     public function setup($oldVersion = "") {
         ET::$database->structure()->table("member")
                                   ->dropColumn("fromSN")
@@ -208,12 +208,12 @@ class ETPlugin_OpauthConnect extends ETPlugin {
                                   ->key("name", "primary")
                                   ->exec(false);
         ET::$database->query(strtr("ALTER TABLE [prefix]oc_member_social ADD FOREIGN KEY(member_Id) REFERENCES [prefix]member(memberId)", array('[prefix]' => C("esoTalk.database.prefix"))));
-        
+
 //        ET::$database->query($this->services->getSettingsSchemaQuery(C("esoTalk.database.prefix")));
-        
+
         return true;
     }
-    
+
     private function social_auth($sender) {
         if(ET::$session->user) {
             $sender->message("You are already logged in");
@@ -221,7 +221,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
         }
         $this->opauth_connect->doRequest();
     }
-    
+
     private function social_callback($sender) {
         try {
             $response = $this->opauth_connect->getResponse();
@@ -229,12 +229,12 @@ class ETPlugin_OpauthConnect extends ETPlugin {
                 case OpauthConnect::ACCOUNT_CONFIRMED:
                     $this->login($this->opauth_connect->getLastAccountValidation());
                     break;
-                
+
                 case OpauthConnect::ACCOUNT_NOT_EXISTS:
                     ET::$session->store("OpauthConnect", $response["static"]);
                     $this->social_setup($sender, $response["editable"]);
                     return;
-                
+
                 case OpauthConnect::ACCOUNT_NOT_CONFIRMED:
                     $sender->message("Your account was not confirmed. <a href='".URL("user/social/sendconfirmation/".$this->opauth_connect->getLastAccountValidation())."'>Send confirmation letter again</a>", "warning");
                     break;
@@ -245,7 +245,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
         }
         redirect(URL());
     }
-    
+
     private function social_confirm($sender, $hash) {
         if($result = ET::getInstance("ocMemberSocialModel")->validateConfirmationHash($hash)) {
             $sender->message(T("You successfully confirmed your new account"), "success");
@@ -254,11 +254,11 @@ class ETPlugin_OpauthConnect extends ETPlugin {
         $sender->message(T("Invalid confirmation hash"), "warning");
         redirect(URL());
     }
-    
+
     private function social_remember() {
         ET::$session->store("remember", (int)R("remember", 0));
     }
-    
+
     private function social_sendConfirmation($sender, $row_id, $is_new_user) {
         $data = ET::getInstance("ocMemberSocialModel")->getConfirmationData($row_id);
         if(time() - $data["confirmationSent"] > OpauthConnect::CONFIRMATION_INTERVAL) {
@@ -278,9 +278,9 @@ class ETPlugin_OpauthConnect extends ETPlugin {
                 "[socialName]"    => $data["name"],
                 "[userName]"      => $data["username"]
             ));
-            
+
             sendEmail($data["email"], $title, $sender->getViewContents('emails/oc_confirmation', $params));
-            
+
             ET::getInstance("ocMemberSocialModel")->sentConfirmation($row_id);
             $sender->message("Confirmation letter was sent to your e-mail address (".$data["email"].")", "success");
         }
@@ -289,14 +289,14 @@ class ETPlugin_OpauthConnect extends ETPlugin {
         }
         redirect(URL());
     }
-    
+
     private function social_setup($sender, $form_data = array()) {
         $session_data = ET::$session->get("OpauthConnect");
         if(!$session_data) {
             $sender->message(T("Time is out. Please, try again"), "warning");
             redirect(URL("user/login"));
         }
-        
+
         $email_only = false;
         if(ET::memberModel()->validateEmail($session_data["email"]) == "emailTaken") {
             $email_only = true;
@@ -315,7 +315,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
                     $form->error("email", T("Email is invalid"));
                 }
             }
-            
+
             if(!$email_only) {
                 if(!$form->getValue("generate_password")) {
                     if(ET::memberModel()->validatePassword($form->getValue("password")) !== null) {
@@ -357,12 +357,12 @@ class ETPlugin_OpauthConnect extends ETPlugin {
                                 "password" => $password,
                                 "forumName" => C("esoTalk.forumTitle")
                             );
-                            
+
                             $title = strtr($this->settings->get(OCSettings::PASS_EMAIL_SUBJ), array(
                                 "[forumName]" => C("esoTalk.forumTitle"),
                                 "[userName]"  => $form->getValue("username")
                             ));
-                            
+
                             sendEmail($email, $title, $sender->getViewContents('emails/oc_password', $params));
                         }
 
@@ -378,7 +378,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
                         $avatar_exists = false;
                         $is_new_user = true;
                         break;
-                        
+
                     case "emailTaken":
                         $member = ET::memberModel()->get(array("email" => $email));
                         $avatar_exists = $member[0]["avatarFormat"];
@@ -386,13 +386,13 @@ class ETPlugin_OpauthConnect extends ETPlugin {
                         $is_new_user = null;
                         break;
                 }
-                
+
                 ET::$session->remove("OpauthConnect");
                 if(!$avatar_exists && $form->getValue("avatar")) {
                     $avatar = ET::uploader()->saveAsImage($form->getValue("avatar"), PATH_UPLOADS."/avatars/".$memberId, C("esoTalk.avatars.width"), C("esoTalk.avatars.height"), "crop");
                     ET::memberModel()->updateById($memberId, array("avatarFormat" => pathinfo($avatar, PATHINFO_EXTENSION)));
                 }
-                
+
                 $row_id = ET::getInstance("ocMemberSocialModel")->addAccount(
                         $memberId,
                         $session_data["provider"],
@@ -402,7 +402,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
                         !$needs_confirmation,
                         $needs_confirmation ? md5(uniqid(rand())) : null
                 );
-                
+
                 if($needs_confirmation) {
                     $this->social_sendConfirmation($sender, $row_id, $is_new_user);
                 }
@@ -415,46 +415,46 @@ class ETPlugin_OpauthConnect extends ETPlugin {
         foreach($form_data as $key => $value) {
             $form->setValue($key, $value);
         }
-        
+
         $sender->data("show_email", true);
         if($session_data["email"]) {
             if($form->isPostBack()) $_POST['email'] = $session_data["email"];
             else $form->setValue("email", $session_data["email"]);
             $sender->data("show_email", false);
         }
-        
+
         $sender->data("email_only", $email_only);
         $sender->data("form", $form);
         $sender->render("social/oc_account_setup");
     }
-    
+
     public function userController_social($sender, $action, $param1 = null, $param2 = null) {
         switch($action) {
             case "setup":
                 $this->social_setup($sender);
                 break;
-            
+
             case "callback":
                 $this->social_callback($sender);
                 break;
-            
+
             case "sendconfirmation":
                 $this->social_sendConfirmation($sender, $param1, $param2);
                 break;
-            
+
             case "confirm":
                 $this->social_confirm($sender, $param1);
                 break;
-            
+
             case "remember":
                 $this->social_remember();
                 break;
-            
+
             // Will be removed next version
             case 'exportsettings':
                 $this->exportSettings($param1);
                 break;
-            
+
             default:
                 if($this->services->isServiceExists($action)) {
                     $this->social_auth($sender);
@@ -465,7 +465,7 @@ class ETPlugin_OpauthConnect extends ETPlugin {
                 break;
         }
     }
-    
+
     /**
      * Available only in 2.0.2
      * Will be removed next version
@@ -475,32 +475,32 @@ class ETPlugin_OpauthConnect extends ETPlugin {
         if(!ET::$session->user || ET::$session->user['account'] != 'administrator') {
             exit();
         }
-        
+
         $prefix = ($v == "v1") ? "plugin.opauthconnect." : "OpauthConnect.";
-        
+
         $this->settings->set(OCSettings::SECURITY_SALT, C($prefix.OCSettings::SECURITY_SALT));
         $this->settings->set(OCSettings::ALLOW_UNLINK, C($prefix.OCSettings::ALLOW_UNLINK));
         $this->settings->set(OCSettings::CONFIRM_EMAIL_SUBJ, C($prefix.OCSettings::CONFIRM_EMAIL_SUBJ));
-        $this->settings->set(OCSettings::PASS_EMAIL_SUBJ, C($prefix.OCSettings::PASS_EMAIL_SUBJ));    
-        
+        $this->settings->set(OCSettings::PASS_EMAIL_SUBJ, C($prefix.OCSettings::PASS_EMAIL_SUBJ));
+
         $this->settings->set("google_enabled", C($prefix."google_enable"));
         $this->settings->set("google_client_id", C($prefix."google_key"));
         $this->settings->set("google_client_secret", C($prefix."google_secret"));
-        
+
         $this->settings->set("facebook_enabled", C($prefix."facebook_enable"));
         $this->settings->set("facebook_app_id", C($prefix."facebook_key"));
         $this->settings->set("facebook_app_secret", C($prefix."facebook_secret"));
-        
+
         $this->settings->set("twitter_enabled", C($prefix."twitter_enable"));
         $this->settings->set("twitter_key", C($prefix."twitter_key"));
         $this->settings->set("twitter_secret", C($prefix."twitter_secret"));
-        
+
         $this->settings->set("vkontakte_enabled", C($prefix."vkontakte_enable"));
         $this->settings->set("vkontakte_app_id", C($prefix."vkontakte_key"));
         $this->settings->set("vkontakte_app_secret", C($prefix."vkontakte_secret"));
-        
+
         $this->settings->save();
-        
+
         print "Settings were exported successfully!";
     }
 
